@@ -1,0 +1,55 @@
+# Single-stage build (commented out for reference)
+# FROM python:3.11-alpine as builder
+# WORKDIR /app
+# Remove unnecessary files to reduce image size
+# RUN apk del --no-cache \
+#     && rm -rf /usr/local/lib/python3.11/test \
+#               /usr/local/lib/python3.11/ensurepip \
+#               /usr/local/lib/python3.11/tkinter \
+#               /usr/local/lib/python3.11/sqlite3 \
+#               /usr/local/lib/python3.11/venv \
+#               /usr/local/lib/python3.11/idlelib \
+#               /usr/local/lib/python3.11/lib-dynload/_bz2* \
+#               /usr/local/lib/python3.11/lib-dynload/_lzma* \
+#               /usr/local/lib/python3.11/lib-dynload/readline* \
+#               /usr/local/bin/pip* \
+#               /usr/local/bin/easy_install* \
+#               /usr/share/man \
+#               /usr/share/doc
+# Copy runner script
+# COPY runner.py /app/runner.py
+# Specify command to run the container
+# CMD ["python3", "runner.py"]
+
+# Note: Both single-stage and multi-stage builds may result in similar image sizes (~55.4 MB) 
+# if the same files are removed and only minimal Python runtime is included.
+
+
+FROM python:3.11-alpine AS builder
+WORKDIR /app
+COPY runner.py .
+
+# Strip unneeded stuff
+RUN rm -rf /usr/local/lib/python3.11/test \
+           /usr/local/lib/python3.11/ensurepip \
+           /usr/local/lib/python3.11/venv \
+           /usr/local/lib/python3.11/idlelib \
+           /usr/local/lib/python3.11/tkinter \
+           /usr/local/lib/python3.11/sqlite3 \
+           /usr/local/bin/pip* \
+           /usr/local/bin/easy_install*
+
+# Final stage
+FROM alpine:3.19
+WORKDIR /app
+
+# Copy *only* python binary + minimal stdlib
+# Copy minimal python runtime from builder
+COPY --from=builder /usr/local /usr/local
+COPY --from=builder /usr/lib /usr/lib
+COPY --from=builder /lib /lib
+
+
+COPY runner.py .
+
+CMD ["python3", "runner.py"]
