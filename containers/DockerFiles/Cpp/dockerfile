@@ -1,0 +1,31 @@
+# -----------------------------
+# Stage 1: Build minimal CP environment
+# -----------------------------
+FROM alpine:3.20 AS c_cpp_runner
+
+# Set working directory
+WORKDIR /app
+
+# Install only essential packages for compilation
+# - gcc, g++: compilers
+# - libc-dev: essential C library headers
+# - libstdc++: C++ standard library
+# - bash: for simple scripting
+# - tini: init for proper signal handling
+RUN apk add --no-cache \
+    bash \
+    tini \
+    gcc \
+    g++ \
+    libc-dev \
+    libstdc++ \
+    && rm -rf /var/cache/apk/*
+
+# Optional: precompile common headers for faster compilation
+RUN echo '#include <bits/stdc++.h>' > /app/stdcpp.h
+
+# Entrypoint for running code
+COPY run.sh /app/run.sh
+RUN chmod +x /app/run.sh
+
+ENTRYPOINT ["/sbin/tini", "--", "/app/run.sh"]
