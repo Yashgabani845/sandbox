@@ -1,0 +1,16 @@
+# ---- Stage 1: The Builder (same as before) ----
+# Use a full Node.js image just to get the 'node' binary.
+FROM node:20-alpine AS builder
+
+# ---- Stage 2: The Final Runtime ----
+# Start from a clean, minimal Alpine image.
+FROM alpine:3.20
+
+WORKDIR /app
+
+# Copy ONLY the 'node' binary from the 'builder' stage.
+COPY --from=builder /usr/local/bin/node /usr/local/bin/
+
+# Set the entrypoint to 'node'. This makes the container
+# act like the 'node' executable itself.
+ENTRYPOINT ["node"]
