@@ -1,0 +1,10 @@
+FROM golang:1.23-alpine
+
+WORKDIR /runner
+
+# add non-root user for safety
+RUN adduser -D runner
+USER runner
+
+# Compile whatever main.go is mounted, run it with input.txt, write output.txt, print output
+ENTRYPOINT ["sh", "-c", "go build -o main /runner/main.go && ./main < /runner/input.txt > /runner/output.txt && cat /runner/output.txt"]

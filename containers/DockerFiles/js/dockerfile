@@ -1,16 +1,46 @@
-# ---- Stage 1: The Builder (same as before) ----
-# Use a full Node.js image just to get the 'node' binary.
+# # ---- Stage 1: The Builder (same as before) ----  134mb
+# # Use a full Node.js image just to get the 'node' binary.
+# FROM node:20-alpine AS builder
+
+# # ---- Stage 2: The Final Runtime ----
+# # Start from a clean, minimal Alpine image.
+# FROM alpine:3.20
+
+# WORKDIR /app
+
+# # Copy ONLY the 'node' binary from the 'builder' stage.
+# COPY --from=builder /usr/local/bin/node /usr/local/bin/
+
+# # Set the entrypoint to 'node'. This makes the container
+# # act like the 'node' executable itself.
+# ENTRYPOINT ["node"]
+
+
+# 111mb
+# ---- Stage 1: Builder ----
+# Use full Node.js image just to extract the 'node' binary.
 FROM node:20-alpine AS builder
 
-# ---- Stage 2: The Final Runtime ----
-# Start from a clean, minimal Alpine image.
+WORKDIR /extract
+
+# Copy only the node binary and its required shared libraries
+# (Node dynamically links some libraries in /usr/lib)
+RUN mkdir -p /extract/node
+RUN cp /usr/local/bin/node /extract/node/
+
+# ---- Stage 2: Minimal Runtime ----
 FROM alpine:3.20
 
 WORKDIR /app
 
-# Copy ONLY the 'node' binary from the 'builder' stage.
-COPY --from=builder /usr/local/bin/node /usr/local/bin/
+# Install only required runtime libraries for Node.js
+RUN apk add --no-cache libstdc++ libgcc
 
-# Set the entrypoint to 'node'. This makes the container
-# act like the 'node' executable itself.
+# Copy the 'node' binary from the builder
+COPY --from=builder /extract/node/node /usr/local/bin/
+
+# Remove npm, npx, and any extra files just in case
+RUN rm -rf /usr/local/lib/node_modules /usr/bin/npm /usr/bin/npx
+
+# Set entrypoint to node
 ENTRYPOINT ["node"]
