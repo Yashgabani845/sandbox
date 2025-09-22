@@ -1,0 +1,21 @@
+FROM eclipse-temurin:17-jdk-alpine AS builder
+
+# Create minimal JRE with only needed modules
+RUN jlink \
+    --module-path $JAVA_HOME/jmods \
+    --add-modules java.base,java.logging,jdk.compiler,jdk.zipfs,jdk.unsupported \
+    --output /opt/java-mini \
+    --strip-debug \
+    --no-man-pages \
+    --no-header-files \
+    --compress=2
+# Final runtime image
+FROM alpine:3.19
+COPY --from=builder /opt/java-mini /opt/java-mini
+ENV PATH="/opt/java-mini/bin:$PATH"
+
+WORKDIR /app
+COPY runner.sh .
+RUN chmod +x runner.sh
+
+ENTRYPOINT ["sh", "runner.sh"]
